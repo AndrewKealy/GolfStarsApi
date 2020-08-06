@@ -5,7 +5,7 @@ import org.springframework.boot.ApplicationRunner
 import org.springframework.stereotype.Component
 
 @Component
-class DataInitializer(val groupsRepository: GroupsRepository, val usersRepository: UsersRepository, var userGroupsServices : UserGroupsServices) : ApplicationRunner {
+class DataInitializer(val groupsRepository: GroupsRepository, val usersRepository: UsersRepository, var userGroupsServices : UserGroupsServices, var chatMessageRepository: ChatMessageRepository) : ApplicationRunner {
 
     @Throws(Exception::class)
     override fun run(args: ApplicationArguments) {
@@ -53,7 +53,8 @@ class DataInitializer(val groupsRepository: GroupsRepository, val usersRepositor
         saveUserGroups()
 
         val allUserGroups: MutableList<UserGroups> = userGroupsServices.getAll()
-
+        var chatMessage1: ChatMessage = ChatMessage(playerUserName = "testUser1", groupId = 1, messageBody = "This is a test message")
+        chatMessageRepository.save(chatMessage1)
 
     }
 }

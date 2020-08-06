@@ -115,7 +115,14 @@ class AddTimeToMessage {
 	}
 }
 
+@RepositoryRestResource
+interface ChatMessageRepository : JpaRepository<ChatMessage, Int>
+
+
+@Entity
+data class TournamentGolfer(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var tournamentGolferId: Int? = null ,
+					var firstName: String? = null, var secondName: String? = null, var tournamentOddsToOne: Int? = null, var tournamentPosition : Int? = null)
 
 @RepositoryRestResource
-interface ChatMessageRepository : JpaRepository<GolfUser, Int>
+interface TournamentGolferRepository : JpaRepository<TournamentGolfer, Int>
 
