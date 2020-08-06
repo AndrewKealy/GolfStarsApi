@@ -102,7 +102,7 @@ It is therefore possible to track into which tournaments golfers are entered and
  */
 
 @Entity
-data class TournamentEnrollment  (@EmbeddedId var TournamentEnrollmentId: TournamentEnrollmentId? = null)
+data class TournamentEnrollment  (@EmbeddedId var TournamentEnrollmentId: TournamentEnrollmentId? = null, var oddsToOne : Int? = null, var tournamentPosition : Int? = null)
 
 @Embeddable
 class TournamentEnrollmentId (

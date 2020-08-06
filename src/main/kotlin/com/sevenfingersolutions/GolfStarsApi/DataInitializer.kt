@@ -77,15 +77,15 @@ class DataInitializer(val groupsRepository: GroupsRepository, val usersRepositor
 
         fun saveTournamentEnrollment() {
             val tournamentEnrollmentIdOne = tournamentGolfer1.tournamentGolferId?.let{tournament1.tournamentId?.let{ it1 -> TournamentEnrollmentId(it, it1)}}
-            val tournamentEnrollmentOne = TournamentEnrollment(tournamentEnrollmentIdOne)
+            val tournamentEnrollmentOne = TournamentEnrollment(tournamentEnrollmentIdOne, 0, 0)
             tournamentEnrollmentServices.save(tournamentEnrollmentOne)
 
             val tournamentEnrollmentIdTwo = tournamentGolfer1.tournamentGolferId?.let{tournament2.tournamentId?.let{ it1 -> TournamentEnrollmentId(it, it1)}}
-            val tournamentEnrollmentTwo = TournamentEnrollment(tournamentEnrollmentIdTwo)
+            val tournamentEnrollmentTwo = TournamentEnrollment(tournamentEnrollmentIdTwo, 2, 0)
             tournamentEnrollmentServices.save(tournamentEnrollmentTwo)
 
             val tournamentEnrollmentIdThree = tournamentGolfer2.tournamentGolferId?.let{tournament2.tournamentId?.let{ it1 -> TournamentEnrollmentId(it, it1)}}
-            val tournamentEnrollmentThree = TournamentEnrollment(tournamentEnrollmentIdThree)
+            val tournamentEnrollmentThree = TournamentEnrollment(tournamentEnrollmentIdThree, 14, 0)
             tournamentEnrollmentServices.save(tournamentEnrollmentThree)
         }
 
