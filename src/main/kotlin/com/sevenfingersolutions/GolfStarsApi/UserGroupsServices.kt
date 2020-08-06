@@ -25,9 +25,9 @@ public class UserGroupsServices {
     }
 
     @Transactional
-    fun showAll(): MutableList<UserGroups> {
+    fun getAll(): MutableList<UserGroups> {
         val userGroups = userGroupsRepository.findAll()
-        // userGroups.forEach{println(it)}
+        userGroups.forEach{println(it)}
         return userGroups
     }
 }

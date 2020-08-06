@@ -5,6 +5,7 @@ import org.springframework.boot.runApplication
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 
+
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.rest.core.annotation.RepositoryRestResource
 
@@ -13,6 +14,7 @@ import org.springframework.data.rest.core.annotation.RepositoryEventHandler
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import java.io.Serializable
+import java.sql.Date
 import javax.persistence.*
 
 @SpringBootApplication
@@ -21,7 +23,9 @@ class GolfStarsApiApplication
 fun main(args: Array<String>) {
 	runApplication<GolfStarsApiApplication>(*args)
 }
-
+/*
+PlayerGroup is data entity that maps to the MySql database. It has a unique id, a name and a number of members
+ */
 
 @Entity
 data class PlayerGroup(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var playerGroupId: Int? = null ,
@@ -47,6 +51,12 @@ class AddUserToGroup {
 	}
 }
 
+/*
+GolfUser is the data class a unique player id and username. It is used to link them to their groups and to messages.
+It is not needed for sign in, OAuth2 authenication is handled by the okta plugin. The username for okta and for this
+class ought to be the same
+ */
+
 @Entity
 data class GolfUser(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var golfUserId: Int? = null ,
 					var userName: String? = null)
@@ -62,6 +72,8 @@ interface UsersRepository : JpaRepository<GolfUser, Int>
  * it was necessary to create two classes, the UserGroups class and the separate UserGroupsId class that
  * provides the composite ID. This took many hours to figure out!!!
  */
+
+
 
 @Entity
 data class UserGroups  (@EmbeddedId var userGroupsId: UserGroupsId? = null)
@@ -81,3 +93,29 @@ interface UserGroupsRepository : JpaRepository<UserGroups, UserGroupsId> {
 	// fun findAllByGolfUserIdEnrolled(userName: String): List<UserGroups>
 	//   fun findAllByUserGroupsId
 }
+
+/*
+A class to store message data shared between users.
+*/
+@Entity
+data class ChatMessage(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var messageId: Int? = null ,
+					var playerUserName: String? = null, var groupId : Int? = null, var messageBody: String? = null,
+					   @JsonIgnore  var messageDate : Long? =  System.currentTimeMillis())
+
+
+@Component
+@RepositoryEventHandler(ChatMessage::class)
+class AddTimeToMessage {
+
+	@HandleBeforeCreate
+	fun handleCreate(message: ChatMessage) {
+		val date: Long =  System.currentTimeMillis()
+		println("Creating time stamp: $message with date: $date")
+		message.messageDate = date
+	}
+}
+
+
+@RepositoryRestResource
+interface ChatMessageRepository : JpaRepository<GolfUser, Int>
+
