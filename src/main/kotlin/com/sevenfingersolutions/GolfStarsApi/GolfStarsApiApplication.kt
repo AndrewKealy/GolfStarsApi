@@ -81,7 +81,7 @@ data class UserGroups  (@EmbeddedId var userGroupsId: UserGroupsId? = null)
 @Embeddable
 class UserGroupsId (
 		@Column(name = "golf_user_id_enrolled")
-		var userGroupId: Int = -1,
+		var golfUserIdEnrolled: Int = -1,
 
 		@Column(name = "player_group_id_enrolled")
 		var playerGroupIdEnrolled: Int = -1
@@ -93,6 +93,33 @@ interface UserGroupsRepository : JpaRepository<UserGroups, UserGroupsId> {
 	// fun findAllByGolfUserIdEnrolled(userName: String): List<UserGroups>
 	//   fun findAllByUserGroupsId
 }
+
+
+/*
+Tournamnent enrollment is class similar in function to the above class UserGroups.
+It takes a composite primary key from the id of tournament golfers and the id of tournaments.
+It is therefore possible to track into which tournaments golfers are entered and how they perfrom.
+ */
+
+@Entity
+data class TournamentEnrollment  (@EmbeddedId var TournamentEnrollmentId: TournamentEnrollmentId? = null)
+
+@Embeddable
+class TournamentEnrollmentId (
+		@Column(name = "tournament_golfer_id_enrolled")
+		var tournamentGolferIdEnrolled: Int = -1,
+
+		@Column(name = "tournament_id_enrolled")
+		var tournamentIdEnrolled: Int = -1
+
+):Serializable
+
+@RepositoryRestResource
+interface TournamentEnrollmentRepository : JpaRepository<TournamentEnrollment, TournamentEnrollmentId> {
+	// fun findAllByGolfUserIdEnrolled(userName: String): List<UserGroups>
+	//   fun findAllByUserGroupsId
+}
+
 
 /*
 A class to store message data shared between users.
@@ -129,7 +156,7 @@ interface TournamentRepository : JpaRepository<Tournament, Int>
 
 @Entity
 data class TournamentGolfer(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var tournamentGolferId: Int? = null ,
-					var firstName: String? = null, var secondName: String? = null, var imageUrl: String? = null, var nationality : String? = null, var pgaPoints : Int? = null)
+					var firstName: String? = null, var secondName: String? = null, var imageUrl: String? = null, var nationality : String? = null)
 
 @RepositoryRestResource
 interface TournamentGolferRepository : JpaRepository<TournamentGolfer, Int>
