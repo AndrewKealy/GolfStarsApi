@@ -5,7 +5,9 @@ import org.springframework.boot.ApplicationRunner
 import org.springframework.stereotype.Component
 
 @Component
-class DataInitializer(val groupsRepository: GroupsRepository, val usersRepository: UsersRepository, var userGroupsServices : UserGroupsServices, var chatMessageRepository: ChatMessageRepository) : ApplicationRunner {
+class DataInitializer(val groupsRepository: GroupsRepository, val usersRepository: UsersRepository,
+                      var userGroupsServices : UserGroupsServices, var chatMessageRepository: ChatMessageRepository,var tournamentRepository : TournamentRepository, var tournamentGolferRepository : TournamentGolferRepository) : ApplicationRunner {
+
 
     @Throws(Exception::class)
     override fun run(args: ApplicationArguments) {
@@ -55,6 +57,13 @@ class DataInitializer(val groupsRepository: GroupsRepository, val usersRepositor
         val allUserGroups: MutableList<UserGroups> = userGroupsServices.getAll()
         var chatMessage1: ChatMessage = ChatMessage(playerUserName = "testUser1", groupId = 1, messageBody = "This is a test message")
         chatMessageRepository.save(chatMessage1)
+
+        var tournament :Tournament = Tournament(tournamentName = "Houston Open", tournamentLocation = "Houston, Texas", tournamentStartDate = "November 5, 2020" , tournamentEndDate = "November 8, 2020")
+        tournamentRepository.save(tournament)
+
+        var tournamentGolfer : TournamentGolfer = TournamentGolfer(firstName = "Robert", secondName = "Allenby", imageUrl = "toCome", nationality = "Australian", pgaPoints = 0)
+        tournamentGolferRepository.save(tournamentGolfer)
+
 
     }
 }

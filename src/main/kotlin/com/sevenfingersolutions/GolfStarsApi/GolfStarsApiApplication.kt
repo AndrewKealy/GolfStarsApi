@@ -120,8 +120,16 @@ interface ChatMessageRepository : JpaRepository<ChatMessage, Int>
 
 
 @Entity
+data class Tournament(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var tournamentId: Int? = null ,
+							var tournamentName: String? = null, var tournamentLocation: String? = null, var tournamentStartDate : String? = null, var tournamentEndDate : String? = null)
+
+@RepositoryRestResource
+interface TournamentRepository : JpaRepository<Tournament, Int>
+
+
+@Entity
 data class TournamentGolfer(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var tournamentGolferId: Int? = null ,
-					var firstName: String? = null, var secondName: String? = null, var tournamentOddsToOne: Int? = null, var tournamentPosition : Int? = null)
+					var firstName: String? = null, var secondName: String? = null, var imageUrl: String? = null, var nationality : String? = null, var pgaPoints : Int? = null)
 
 @RepositoryRestResource
 interface TournamentGolferRepository : JpaRepository<TournamentGolfer, Int>
