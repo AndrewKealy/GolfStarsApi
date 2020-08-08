@@ -2,11 +2,14 @@ package com.sevenfingersolutions.GolfStarsApi
 
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
+import org.springframework.security.oauth2.core.oidc.user.OidcUser
 import org.springframework.stereotype.Component
 
 @Component
 class DataInitializer(val groupsRepository: GroupsRepository, val usersRepository: UsersRepository,
-                      var userGroupsServices : UserGroupsServices, var chatMessageRepository: ChatMessageRepository,var tournamentRepository : TournamentRepository, var tournamentGolferRepository : TournamentGolferRepository, var tournamentEnrollmentServices: TournamentEnrollmentServices) : ApplicationRunner {
+                      var userGroupsServices : UserGroupsServices, var chatMessageRepository: ChatMessageRepository,
+                      var tournamentRepository : TournamentRepository, var tournamentGolferRepository : TournamentGolferRepository,
+                      var tournamentEnrollmentServices: TournamentEnrollmentServices) : ApplicationRunner {
 
 
     @Throws(Exception::class)
@@ -16,10 +19,13 @@ class DataInitializer(val groupsRepository: GroupsRepository, val usersRepositor
         }
         groupsRepository.findAll().forEach { println(it) }
 
+
         var testUser1: GolfUser = GolfUser(userName = "testUser1")
         var testUser2: GolfUser = GolfUser(userName = "testUser2")
+         var testUser3: GolfUser = GolfUser(userName = "andrewkealy@hotmail.com")
         usersRepository.save(testUser1)
         usersRepository.save(testUser2)
+        usersRepository.save(testUser3)
         var testGroup1: PlayerGroup = groupsRepository.findByPlayerGroupId(1)
         println(testGroup1.toString())
         var testUserForGroup1: GolfUser = usersRepository.getOne(1)
@@ -27,7 +33,7 @@ class DataInitializer(val groupsRepository: GroupsRepository, val usersRepositor
         var testGroup2: PlayerGroup = groupsRepository.findByPlayerGroupId(2)
         var testUserForGroup2: GolfUser = usersRepository.getOne(2)
         var testGroup3: PlayerGroup = groupsRepository.findByPlayerGroupId(3)
-
+        var testUserForGroup3: GolfUser = usersRepository.getOne(3)
         /*
         A function to initialize data in the UserGroupsRepository, which takes its primary key from a composite of
         two foreign keys
@@ -50,9 +56,9 @@ class DataInitializer(val groupsRepository: GroupsRepository, val usersRepositor
             val userGroupFour = UserGroups(userGroupFourId)
             userGroupsServices.save(userGroupFour)
 
-            val userGroupFiveId = testUserForGroup1.golfUserId?.let { testGroup1.playerGroupId?.let { it1 -> UserGroupsId(it, it1) } }
-            val userGroupFive = UserGroups(userGroupFiveId)
-            userGroupsServices.save(userGroupFive)
+            val userGroupFiveId = testUserForGroup3.golfUserId?.let { testGroup1.playerGroupId?.let { it1 -> UserGroupsId(it, it1) } }
+           val userGroupFive = UserGroups(userGroupFiveId)
+           userGroupsServices.save(userGroupFive)
         }
 
 

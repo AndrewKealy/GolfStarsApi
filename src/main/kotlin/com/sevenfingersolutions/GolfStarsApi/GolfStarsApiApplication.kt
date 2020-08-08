@@ -62,7 +62,9 @@ data class GolfUser(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var
 					var userName: String? = null)
 
 @RepositoryRestResource
-interface UsersRepository : JpaRepository<GolfUser, Int>
+interface UsersRepository : JpaRepository<GolfUser, Int> {
+	fun findByUserName(userName: String?): GolfUser
+}
 
 
 /**
@@ -90,7 +92,8 @@ class UserGroupsId (
 
 @RepositoryRestResource
 interface UserGroupsRepository : JpaRepository<UserGroups, UserGroupsId> {
-	// fun findAllByGolfUserIdEnrolled(userName: String): List<UserGroups>
+	// fun findAllByUserId(userId : Int): List<UserGroups>
+//	fun findAllByGolfUserIdEnrolled(golfUserIdEnrolled: Int): List<UserGroups>
 	//   fun findAllByUserGroupsId
 }
 
