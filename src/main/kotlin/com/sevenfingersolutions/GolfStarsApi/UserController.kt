@@ -2,10 +2,10 @@ package com.sevenfingersolutions.GolfStarsApi
 
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.security.oauth2.core.oidc.OidcUserInfo
 import org.springframework.security.oauth2.core.oidc.user.OidcUser
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
+import java.security.Principal
 
 
 @RestController
@@ -18,19 +18,21 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
 //    A methd that returns an array of all the player-groups of which the user is a member
 
     @GetMapping("/user/groups")
-   /*
 
-    fun groups (@AuthenticationPrincipal user: OidcUser): List<PlayerGroup> {
+ /*
+    fun groups(principal: Principal) : List<PlayerGroup> {
+        println("Fetching groups for user: ${principal.name}")
         return groupsRepository.findAll()
     }
-*/
+    */
 
-    fun groups(@AuthenticationPrincipal user: OidcUser): List<PlayerGroup> {
-        println("Fetching groups for user: ${user.preferredUsername}")
 
+       fun groups(principal: Principal): List<PlayerGroup> {
+            println("Fetching groups for user: ${principal.name}")
+        //val username: String =  SecurityContextHolder.getContext().getAuthentication().name
         var listOfPlayerGroups : MutableList<PlayerGroup> = arrayListOf()
         try {
-            val usersGroups: List<UserGroups>? = userGroupsServices.findAllByUser(user.preferredUsername)
+            val usersGroups: List<UserGroups>? = userGroupsServices.findAllByUser(principal.name)
 
             println("made it to here: " + usersGroups)
 
@@ -40,7 +42,7 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
                     return listOf()
                 } else {
                     usersGroups.forEach {
-                        var playerGroup : PlayerGroup = groupsRepository.findByPlayerGroupId(it.userGroupsId?.playerGroupIdEnrolled)
+                        val playerGroup : PlayerGroup = groupsRepository.findByPlayerGroupId(it.userGroupsId?.playerGroupIdEnrolled)
                         listOfPlayerGroups.add(playerGroup)
                         println()
                     }
@@ -60,6 +62,13 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
 
     }
 
+
+    /*
+
+     fun groups (@AuthenticationPrincipal user: OidcUser): List<PlayerGroup> {
+         return groupsRepository.findAll()
+     }
+ */
     // A method that returns the user name and email address.
     @GetMapping("/user")
     fun user(@AuthenticationPrincipal user: OidcUser): MutableList<String> {
@@ -70,5 +79,17 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
         userDetails.add(user.givenName)
         userDetails.add(user.familyName)
         return userDetails;
+    }
+
+
+    // A method that returns all player groups.
+    @GetMapping("/playerGroups")
+    fun groups (): List<PlayerGroup> {
+        return groupsRepository.findAll()
+    }
+
+    fun enrolPlayerInGroup(playerGroup: PlayerGroup, userName: String) {
+
+
     }
 }

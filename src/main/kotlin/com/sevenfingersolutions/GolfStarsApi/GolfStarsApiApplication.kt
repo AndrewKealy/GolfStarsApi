@@ -7,10 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 
 
 import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.data.rest.core.annotation.RepositoryRestResource
 
-import org.springframework.data.rest.core.annotation.HandleBeforeCreate
-import org.springframework.data.rest.core.annotation.RepositoryEventHandler
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import java.io.Serializable
@@ -22,6 +19,11 @@ import org.springframework.core.Ordered
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import org.springframework.web.filter.CorsFilter
+
+import org.springframework.context.annotation.Configuration
+import org.springframework.data.rest.core.annotation.*
+import org.springframework.data.rest.core.config.RepositoryRestConfiguration
+import org.springframework.data.rest.webmvc.config.RepositoryRestConfigurer
 
 @SpringBootApplication
 class GolfStarsApiApplication {
@@ -41,6 +43,19 @@ class GolfStarsApiApplication {
 	}
 }
 
+@Configuration
+class RestConfiguration : RepositoryRestConfigurer {
+	override fun configureRepositoryRestConfiguration(config: RepositoryRestConfiguration?) {
+		config?.exposeIdsFor(PlayerGroup::class.java)
+		config?.exposeIdsFor(GolfUser::class.java)
+		config?.exposeIdsFor(UserGroups::class.java)
+		config?.exposeIdsFor(TournamentEnrollment::class.java)
+		config?.exposeIdsFor(Tournament::class.java)
+		config?.exposeIdsFor(TournamentGolfer::class.java)
+		config?.setBasePath("/api")
+	}
+}
+
 fun main(args: Array<String>) {
 	runApplication<GolfStarsApiApplication>(*args)
 }
@@ -56,19 +71,45 @@ data class PlayerGroup(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  
 					   @JsonIgnore var groupOwner: String? = null)
 
 @RepositoryRestResource
-interface GroupsRepository : JpaRepository<PlayerGroup, Long> {
+interface GroupsRepository : JpaRepository<PlayerGroup, Int> {
 	fun findByPlayerGroupId(playerGroupId: Int?): PlayerGroup
 }
 
 @Component
 @RepositoryEventHandler(PlayerGroup::class)
-class AddUserToGroup {
+class AddUserToGroup(val groupsRepository: GroupsRepository, val usersRepository: UsersRepository, val userGroupsServices: UserGroupsServices) {
 
-	@HandleBeforeCreate
+	@HandleAfterCreate
 	fun handleCreate(group: PlayerGroup) {
-		val username: String =  SecurityContextHolder.getContext().getAuthentication().name
-		println("Creating group: $group with user: $username")
-		group.groupOwner = username
+		val userName: String =  SecurityContextHolder.getContext().getAuthentication().name
+		println("Created group: $group with user: $userName")
+		group.groupOwner = userName
+		groupsRepository.save(group)
+
+		val user : GolfUser = usersRepository.findByUserName(userName);
+		val userId : Int? = user.golfUserId
+		val groupId : Int? = group.playerGroupId
+		println("userID: " + userId)
+		println("groupId: " + groupId)
+		val userGroupId = userId?.let { groupId?.let { it1 -> UserGroupsId(it, it1) } }
+		println("userGroupID: " + userGroupId)
+		val userGroup = UserGroups(userGroupId)
+		userGroupsServices.save(userGroup)
+
+
+	}
+}
+
+@Component
+@RepositoryEventHandler(PlayerGroup::class)
+class DeleteGroup( val chatMessageRepository: ChatMessageRepository, val userGroupsServices: UserGroupsServices) {
+
+	@HandleBeforeDelete
+	fun handleDelete(group: PlayerGroup) {
+		val groupId = group.playerGroupId
+		var userGroupsToDelete : List<UserGroups> = groupId?.let { userGroupsServices.findByUserGroupsId(it) }!!
+
+		userGroupsServices.deleteListOfUserGroups(userGroupsToDelete)
 	}
 }
 
@@ -80,14 +121,24 @@ class ought to be the same
 
 @Entity
 data class GolfUser(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var golfUserId: Int? = null ,
-					var userName: String? = null)
+					var userName: String? = null, @JsonIgnore var userOktaId: String? = null)
 
 @RepositoryRestResource
 interface UsersRepository : JpaRepository<GolfUser, Int> {
 	fun findByUserName(userName: String?): GolfUser
 }
 
+@Component
+@RepositoryEventHandler(GolfUser::class)
+class AddOktaUserNameToGolfUser {
 
+	@HandleBeforeCreate
+	fun handleCreate(golfUser: GolfUser) {
+		val oktaUsername: String =  SecurityContextHolder.getContext().getAuthentication().name
+		println("Creating note: $golfUser with user: $oktaUsername")
+		golfUser.userOktaId = oktaUsername
+	}
+}
 /**
  * UserGroups is a table in the database that contains userIDs and groupIds, allowing a query that will return all the
  * members of a group. It will also allow logic be applied to enforce the numbers in a group.
@@ -120,7 +171,7 @@ interface UserGroupsRepository : JpaRepository<UserGroups, UserGroupsId> {
 
 
 /*
-Tournamnent enrollment is class similar in function to the above class UserGroups.
+Tournament enrollment is class similar in function to the above class UserGroups.
 It takes a composite primary key from the id of tournament golfers and the id of tournaments.
 It is therefore possible to track into which tournaments golfers are entered and how they perfrom.
  */
@@ -168,7 +219,6 @@ class AddTimeToMessage {
 
 @RepositoryRestResource
 interface ChatMessageRepository : JpaRepository<ChatMessage, Int>
-
 
 @Entity
 data class Tournament(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var tournamentId: Int? = null ,
