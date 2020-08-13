@@ -4,6 +4,8 @@ package com.sevenfingersolutions.GolfStarsApi
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.oauth2.core.oidc.user.OidcUser
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.security.Principal
 
@@ -15,21 +17,11 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
                      var tournamentEnrollmentServices: TournamentEnrollmentServices) {
 
 
-//    A methd that returns an array of all the player-groups of which the user is a member
+//    A method that returns an array of all the player-groups of which the user is a member
 
     @GetMapping("/user/groups")
-
- /*
-    fun groups(principal: Principal) : List<PlayerGroup> {
-        println("Fetching groups for user: ${principal.name}")
-        return groupsRepository.findAll()
-    }
-    */
-
-
        fun groups(principal: Principal): List<PlayerGroup> {
             println("Fetching groups for user: ${principal.name}")
-        //val username: String =  SecurityContextHolder.getContext().getAuthentication().name
         var listOfPlayerGroups : MutableList<PlayerGroup> = arrayListOf()
         try {
             val usersGroups: List<UserGroups>? = userGroupsServices.findAllByUser(principal.name)
@@ -62,6 +54,36 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
 
     }
 
+    //    A method that returns an array of all the player-groups of which the user is a member
+
+
+
+    @GetMapping("/user/userGroups")
+        fun userGroups(principal: Principal, @RequestParam exportId : Int?): List<UserGroups> {
+        var listOfUserGroups: List<UserGroups> = arrayListOf()
+            if(exportId != null) {
+                println("Fetching userGroups for user: ${principal.name} and exportId: $exportId")
+                listOfUserGroups = userGroupsServices.findAllGroupMembersByUserAndExportId(principal.name, exportId)!!
+            } else
+
+
+            println("Fetching userGroups for user: ${principal.name}")
+
+        return try {
+            println("made it to here xxx: $listOfUserGroups")
+            listOfUserGroups = userGroupsServices.findAllGroupMembersByUser(principal.name)!!
+
+
+            listOfUserGroups
+        } catch (EmptyResultDataAccessException: Exception) {
+            println("This user has no user groups")
+
+            listOfUserGroups
+
+        }
+
+
+        }
 
     /*
 
@@ -71,7 +93,7 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
  */
     // A method that returns the user name and email address.
     @GetMapping("/user")
-    fun user(@AuthenticationPrincipal user: OidcUser): MutableList<String> {
+    fun user(@AuthenticationPrincipal user: OidcUser): List<String> {
         var userDetails : MutableList<String> = arrayListOf()
 
 
@@ -88,8 +110,11 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
         return groupsRepository.findAll()
     }
 
-    fun enrolPlayerInGroup(playerGroup: PlayerGroup, userName: String) {
-
-
+    // A method that returns all user groups.
+    @GetMapping("/userGroups")
+    fun userGroups (): List<UserGroups> {
+        return userGroupsServices.getAll()
     }
+
+
 }

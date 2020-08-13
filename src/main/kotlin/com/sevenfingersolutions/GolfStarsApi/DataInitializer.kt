@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component
 class DataInitializer(val groupsRepository: GroupsRepository, val usersRepository: UsersRepository,
                       var userGroupsServices : UserGroupsServices, var chatMessageRepository: ChatMessageRepository,
                       var tournamentRepository : TournamentRepository, var tournamentGolferRepository : TournamentGolferRepository,
-                      var tournamentEnrollmentServices: TournamentEnrollmentServices) : ApplicationRunner {
+                      var tournamentEnrollmentServices: TournamentEnrollmentServices, val tournamentGroupServices: TournamentGroupServices) : ApplicationRunner {
 
 
     @Throws(Exception::class)
@@ -38,6 +38,7 @@ class DataInitializer(val groupsRepository: GroupsRepository, val usersRepositor
         A function to initialize data in the UserGroupsRepository, which takes its primary key from a composite of
         two foreign keys
          */
+
         fun saveUserGroups() {
 
             val userGroupOneId = testUserForGroup1.golfUserId?.let { testGroup1.playerGroupId?.let { it1 -> UserGroupsId(it, it1) } }
@@ -59,10 +60,11 @@ class DataInitializer(val groupsRepository: GroupsRepository, val usersRepositor
             val userGroupFiveId = testUserForGroup3.golfUserId?.let { testGroup1.playerGroupId?.let { it1 -> UserGroupsId(it, it1) } }
            val userGroupFive = UserGroups(userGroupFiveId)
            userGroupsServices.save(userGroupFive)
+
+
         }
 
 
-        val allUserGroups: MutableList<UserGroups> = userGroupsServices.getAll()
         var chatMessage1: ChatMessage = ChatMessage(playerUserName = "testUser1", groupId = 1, messageBody = "This is a test message")
         chatMessageRepository.save(chatMessage1)
 
@@ -78,24 +80,44 @@ class DataInitializer(val groupsRepository: GroupsRepository, val usersRepositor
 
 
         saveUserGroups()
+        val allUserGroups: List<UserGroups> = userGroupsServices.getAll()
+
+
 
 
 
         fun saveTournamentEnrollment() {
             val tournamentEnrollmentIdOne = tournamentGolfer1.tournamentGolferId?.let{tournament1.tournamentId?.let{ it1 -> TournamentEnrollmentId(it, it1)}}
-            val tournamentEnrollmentOne = TournamentEnrollment(tournamentEnrollmentIdOne, 0, 0)
+            val tournamentEnrollmentOne = TournamentEnrollment(tournamentEnrollmentIdOne, 0, 0, pickedBy = 0)
             tournamentEnrollmentServices.save(tournamentEnrollmentOne)
 
             val tournamentEnrollmentIdTwo = tournamentGolfer1.tournamentGolferId?.let{tournament2.tournamentId?.let{ it1 -> TournamentEnrollmentId(it, it1)}}
-            val tournamentEnrollmentTwo = TournamentEnrollment(tournamentEnrollmentIdTwo, 2, 0)
+            val tournamentEnrollmentTwo = TournamentEnrollment(tournamentEnrollmentIdTwo, 2, 0, pickedBy = 0)
             tournamentEnrollmentServices.save(tournamentEnrollmentTwo)
 
             val tournamentEnrollmentIdThree = tournamentGolfer2.tournamentGolferId?.let{tournament2.tournamentId?.let{ it1 -> TournamentEnrollmentId(it, it1)}}
-            val tournamentEnrollmentThree = TournamentEnrollment(tournamentEnrollmentIdThree, 14, 0)
+            val tournamentEnrollmentThree = TournamentEnrollment(tournamentEnrollmentIdThree, 14, 0, pickedBy = 0)
             tournamentEnrollmentServices.save(tournamentEnrollmentThree)
         }
 
         saveTournamentEnrollment()
 
+
+        fun saveTournamentGroup() {
+            val tournamentGroupIdOne = tournament1.tournamentId?.let{testGroup3.playerGroupId?.let{ it1 -> TournamentGroupId(it, it1)}}
+            val tournamentGroupOne = TournamentGroup(tournamentGroupIdOne)
+
+            tournamentGroupServices.save(tournamentGroupOne)
+
+            val tournamentGroupIdTwo = tournament2.tournamentId?.let{testGroup2.playerGroupId?.let{ it1 -> TournamentGroupId(it, it1)}}
+            val tournamentGroupTwo = TournamentGroup(tournamentGroupIdTwo)
+
+            tournamentGroupServices.save(tournamentGroupTwo)
+
+
+
+        }
+
+        saveTournamentGroup()
     }
 }
