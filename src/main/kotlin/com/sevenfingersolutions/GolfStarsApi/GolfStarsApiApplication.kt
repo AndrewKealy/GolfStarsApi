@@ -67,7 +67,8 @@ data class PlayerGroup(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  
 					   var groupName: String? = null,
 					   var totalNumberOfPlayers: Int? = null,
 					   var hasAllMembers: Boolean = false,
-					   var groupOwner: String? = null)
+					   var groupOwner: String? = null,
+						var isPrivate : Boolean = false)
 
 
 @RepositoryRestResource
@@ -94,7 +95,7 @@ class AddUserToGroup(val groupsRepository: GroupsRepository, val usersRepository
 		println("groupId: $groupId")
 		val userGroupId = userId?.let { groupId?.let { it1 -> UserGroupsId(it, it1) } }
 		println("userGroupID: $userGroupId")
-		val userGroup = UserGroups(userGroupId)
+		val userGroup = UserGroups(userGroupsId = userGroupId)
 		userGroupsServices.save(userGroup)
 
 
@@ -106,7 +107,7 @@ class AddUserToGroup(val groupsRepository: GroupsRepository, val usersRepository
 		val playerGroupOwner : String? = group.groupOwner
 		println("Updating UserGroups after saving change to a PlayerGroup")
 
-		playerGroupId?.let { userGroupsServices.findByUserGroupsId(it) }?.forEach {
+		playerGroupId?.let { userGroupsServices.findByPlayerGroupsId(it) }?.forEach {
 			it.groupName = group.groupName
 			it.isOwner = it.golfUserName.equals(playerGroupOwner)
 			userGroupsServices.save(it)
@@ -123,7 +124,7 @@ class DeleteGroup( val chatMessageRepository: ChatMessageRepository, val userGro
 	@HandleBeforeDelete
 	fun handleDelete(group: PlayerGroup) {
 		val groupId = group.playerGroupId
-		val userGroupsToDelete : List<UserGroups> = groupId?.let { userGroupsServices.findByUserGroupsId(it) }!!
+		val userGroupsToDelete : List<UserGroups> = groupId?.let { userGroupsServices.findByPlayerGroupsId(it) }!!
 		userGroupsServices.deleteListOfUserGroups(userGroupsToDelete)
 
 		val chatMessagesToDelete : List<ChatMessage> = groupId.let { chatMessageRepository.findAllByGroupId(it)}
@@ -169,7 +170,7 @@ class AddOktaUserNameToGolfUser {
 
 
 @Entity
-data class UserGroups  (@EmbeddedId @JsonIgnore  var userGroupsId: UserGroupsId? = null, var groupName : String? = null, var golfUserName : String? = null, var isOwner : Boolean = false,  @GeneratedValue(strategy = GenerationType.AUTO)  var userGroupsExportId: Int? = null) {
+data class UserGroups  (@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var userGroupsPrimaryKey : Int? = null,  @Embedded   var userGroupsId: UserGroupsId? = null, var groupName : String? = null, var golfUserName : String? = null, var isOwner : Boolean = false) {
 	override fun toString(): String {
 		val mapper = ObjectMapper()
 		mapper.enable(SerializationFeature.INDENT_OUTPUT)
@@ -201,9 +202,7 @@ class UserGroupsId (
 }
 
 @RepositoryRestResource
-interface UserGroupsRepository : JpaRepository<UserGroups, UserGroupsId>{
-	fun findByUserGroupsId(userGroupsId: UserGroupsId?): UserGroups
-}
+interface UserGroupsRepository : JpaRepository<UserGroups, Int>
 /*
 @Component
 @RepositoryEventHandler(UserGroups::class)

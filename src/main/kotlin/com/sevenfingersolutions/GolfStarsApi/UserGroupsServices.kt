@@ -4,7 +4,7 @@ import javax.transaction.Transactional
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import java.util.*
+
 
 /**
  * This service is designed to connect allow composite primary keys be assigned to the linked MySql database
@@ -82,9 +82,9 @@ public class UserGroupsServices {
 
             val golfUser: GolfUser = usersRepository.findByUserName(name)
             val userGroups = userGroupsRepository.findAll()
-            var usersUserGroups: MutableList<UserGroups> = arrayListOf()
+            val usersUserGroups: MutableList<UserGroups> = arrayListOf()
             userGroups.forEach {
-                if (golfUser != null) if (it.userGroupsId?.golfUserIdEnrolled == golfUser.golfUserId) {
+                if (it.userGroupsId?.golfUserIdEnrolled == golfUser.golfUserId) {
                     usersUserGroups.add(it)
                 }
             }
@@ -97,9 +97,9 @@ public class UserGroupsServices {
 
         val golfUser: GolfUser = usersRepository.findByUserName(name)
         val userGroups = userGroupsRepository.findAll()
-        var usersUserGroups: MutableList<UserGroups> = arrayListOf()
+        val usersUserGroups: MutableList<UserGroups> = arrayListOf()
         userGroups.forEach { userGroups1 ->
-            if (golfUser != null) if ( userGroups1.userGroupsId?.golfUserIdEnrolled == golfUser.golfUserId) {
+             if ( userGroups1.userGroupsId?.golfUserIdEnrolled == golfUser.golfUserId) {
                 userGroups.forEach {
                     if (it.userGroupsId?.playerGroupIdEnrolled == userGroups1.userGroupsId?.playerGroupIdEnrolled)
                         usersUserGroups.add(it)
@@ -111,6 +111,7 @@ public class UserGroupsServices {
 
     }
 
+    /*
     @Transactional
     fun findAllGroupMembersByUserAndExportId(userName : String, exportId: Int): List<UserGroups> {
         val usersUserGroups : List<UserGroups> = findAllGroupMembersByUser(userName)
@@ -122,10 +123,10 @@ public class UserGroupsServices {
         }
         return userAndExportIdUserGroups
     }
-
+*/
 
         @Transactional
-        fun findByUserGroupsId(playerGroupsId: Int): List<UserGroups>? {
+        fun findByPlayerGroupsId(playerGroupsId: Int): List<UserGroups>? {
 
             val userGroups = userGroupsRepository.findAll()
             var userGroupsById: MutableList<UserGroups> = arrayListOf()

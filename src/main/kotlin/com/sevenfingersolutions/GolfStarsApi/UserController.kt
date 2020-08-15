@@ -2,11 +2,9 @@ package com.sevenfingersolutions.GolfStarsApi
 
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.oauth2.core.oidc.user.OidcUser
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import java.security.Principal
 
 
@@ -58,20 +56,14 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
 
 
 
-    @GetMapping("/user/userGroups")
-        fun userGroups(principal: Principal, @RequestParam exportId : Int?): List<UserGroups> {
+    @GetMapping("/user/userGroupses")
+        fun userGroups(principal: Principal): List<UserGroups> {
         var listOfUserGroups: List<UserGroups> = arrayListOf()
-            if(exportId != null) {
-                println("Fetching userGroups for user: ${principal.name} and exportId: $exportId")
-                listOfUserGroups = userGroupsServices.findAllGroupMembersByUserAndExportId(principal.name, exportId)!!
-            } else
-
-
-            println("Fetching userGroups for user: ${principal.name}")
+         println("Fetching userGroups for user: ${principal.name}")
 
         return try {
-            println("made it to here xxx: $listOfUserGroups")
-            listOfUserGroups = userGroupsServices.findAllGroupMembersByUser(principal.name)!!
+            println("made it to here xxx")
+            listOfUserGroups = userGroupsServices.findAllGroupMembersByUser(principal.name)
 
 
             listOfUserGroups
@@ -110,11 +102,23 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
         return groupsRepository.findAll()
     }
 
-    // A method that returns all user groups.
-    @GetMapping("/userGroups")
-    fun userGroups (): List<UserGroups> {
-        return userGroupsServices.getAll()
+/*
+    @RequestMapping(value = ["/userGroups/{userGroupsExportId}"], method = [RequestMethod.GET], produces = ["application/json"])
+    fun getUserGroupsByExportId(@PathVariable("userGroupsExportId") userGroupsExportId: Int?): List<UserGroups> {
+        val userName: String =  SecurityContextHolder.getContext().authentication.name
+        var listOfUserGroups: List<UserGroups>
+        return if(userGroupsExportId != null) {
+            println("Fetching userGroups for user: ${userName} and exportId: $userGroupsExportId")
+            listOfUserGroups = userGroupsServices.findAllGroupMembersByUserAndExportId(userName, userGroupsExportId)
+            listOfUserGroups
+        } else
+            userGroupsServices.getAll()
     }
-
+    // A method that returns all user groups.
+*/
+    @GetMapping("/userGroups")
+        fun userGroups(): List<UserGroups> {
+            return  userGroupsServices.getAll()
+    }
 
 }

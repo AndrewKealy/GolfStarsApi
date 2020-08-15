@@ -42,23 +42,23 @@ class DataInitializer(val groupsRepository: GroupsRepository, val usersRepositor
         fun saveUserGroups() {
 
             val userGroupOneId = testUserForGroup1.golfUserId?.let { testGroup1.playerGroupId?.let { it1 -> UserGroupsId(it, it1) } }
-            val userGroupOne = UserGroups(userGroupOneId)
+            val userGroupOne = UserGroups(userGroupsId = userGroupOneId)
             userGroupsServices.save(userGroupOne)
 
             val userGroupTwoId = testUserForGroup2.golfUserId?.let { testGroup2.playerGroupId?.let { it1 -> UserGroupsId(it, it1) } }
-            val userGroupTwo = UserGroups(userGroupTwoId)
+            val userGroupTwo = UserGroups(userGroupsId = userGroupTwoId)
             userGroupsServices.save(userGroupTwo)
 
             val userGroupThreeId = testUserForGroup1.golfUserId?.let { testGroup3.playerGroupId?.let { it1 -> UserGroupsId(it, it1) } }
-            val userGroupThree = UserGroups(userGroupThreeId)
+            val userGroupThree = UserGroups(userGroupsId = userGroupThreeId)
             userGroupsServices.save(userGroupThree)
 
             val userGroupFourId = testUserForGroup2.golfUserId?.let { testGroup1.playerGroupId?.let { it1 -> UserGroupsId(it, it1) } }
-            val userGroupFour = UserGroups(userGroupFourId)
+            val userGroupFour = UserGroups(userGroupsId = userGroupFourId)
             userGroupsServices.save(userGroupFour)
 
             val userGroupFiveId = testUserForGroup3.golfUserId?.let { testGroup1.playerGroupId?.let { it1 -> UserGroupsId(it, it1) } }
-           val userGroupFive = UserGroups(userGroupFiveId)
+           val userGroupFive = UserGroups(userGroupsId = userGroupFiveId)
            userGroupsServices.save(userGroupFive)
 
 
