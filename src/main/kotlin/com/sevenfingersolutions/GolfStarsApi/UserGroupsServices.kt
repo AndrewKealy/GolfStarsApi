@@ -111,19 +111,23 @@ public class UserGroupsServices {
 
     }
 
-    /*
+
+
     @Transactional
-    fun findAllGroupMembersByUserAndExportId(userName : String, exportId: Int): List<UserGroups> {
+    fun findallByUserAndGroupId(userName: String, groupId : String): List<UserGroups> {
+        println("Got correct name:$userName")
+        println("Got correct name:$groupId")
         val usersUserGroups : List<UserGroups> = findAllGroupMembersByUser(userName)
         val userAndExportIdUserGroups: MutableList<UserGroups> = arrayListOf()
         usersUserGroups.forEach {
-            if (it.userGroupsExportId == exportId) {
+            if (it.userGroupsId?.playerGroupIdEnrolled == groupId.toInt()) {
                 userAndExportIdUserGroups.add(it)
             }
         }
         return userAndExportIdUserGroups
     }
-*/
+
+
 
         @Transactional
         fun findByPlayerGroupsId(playerGroupsId: Int): List<UserGroups>? {

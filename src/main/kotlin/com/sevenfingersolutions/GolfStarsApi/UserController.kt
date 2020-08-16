@@ -2,7 +2,6 @@ package com.sevenfingersolutions.GolfStarsApi
 
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.oauth2.core.oidc.user.OidcUser
 import org.springframework.web.bind.annotation.*
 import java.security.Principal
@@ -18,37 +17,43 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
 //    A method that returns an array of all the player-groups of which the user is a member
 
     @GetMapping("/user/groups")
-       fun groups(principal: Principal): List<PlayerGroup> {
-            println("Fetching groups for user: ${principal.name}")
+       fun groups(principal: Principal, groupName: String?): List<PlayerGroup> {
+
+        println("Fetching groups for user: ${principal.name}")
         var listOfPlayerGroups : MutableList<PlayerGroup> = arrayListOf()
-        try {
-            val usersGroups: List<UserGroups>? = userGroupsServices.findAllByUser(principal.name)
+        if(groupName.isNullOrEmpty()) {
+            try {
+                val usersGroups: List<UserGroups>? = userGroupsServices.findAllByUser(principal.name)
 
-            println("made it to here: " + usersGroups)
+                println("made it to here: " + usersGroups)
 
 
-            if (usersGroups != null) {
-                if (usersGroups.isEmpty()) {
-                    return listOf()
-                } else {
-                    usersGroups.forEach {
-                        val playerGroup : PlayerGroup = groupsRepository.findByPlayerGroupId(it.userGroupsId?.playerGroupIdEnrolled)
-                        listOfPlayerGroups.add(playerGroup)
-                        println()
+                if (usersGroups != null) {
+                    if (usersGroups.isEmpty()) {
+                        return listOf()
+                    } else {
+                        usersGroups.forEach {
+                            val playerGroup: PlayerGroup = groupsRepository.findByPlayerGroupId(it.userGroupsId?.playerGroupIdEnrolled)
+                            listOfPlayerGroups.add(playerGroup)
+                            println()
+                        }
+
                     }
-
                 }
+
+                println(listOfPlayerGroups.toString())
+                return listOfPlayerGroups
+            } catch (EmptyResultDataAccessException: Exception) {
+                println("This user has no groups")
+
+                return listOfPlayerGroups
+
             }
-
-            println(listOfPlayerGroups.toString())
-            return listOfPlayerGroups
-        } catch (EmptyResultDataAccessException : Exception) {
-            println("This user has no groups")
-
-            return listOfPlayerGroups
-
+        }   else if(groupName.equals("all")) {
+            return groupsRepository.findAll()
+        } else {
+            return groupsRepository.findAllByGroupOwnerAndGroupNameContainingIgnoringCase(principal.name, groupName)
         }
-
 
     }
 
@@ -57,26 +62,53 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
 
 
     @GetMapping("/user/userGroupses")
-        fun userGroups(principal: Principal): List<UserGroups> {
+        fun userGroups(principal: Principal, playerGroupIdEnrolled: String?): List<UserGroups> {
         var listOfUserGroups: List<UserGroups> = arrayListOf()
-         println("Fetching userGroups for user: ${principal.name}")
+        println("Fetching userGroups for user: ${principal.name} and playerGroupId: " + playerGroupIdEnrolled)
+        if (playerGroupIdEnrolled.isNullOrEmpty()) {
+            return try {
+                println("made it to here xxx")
+                listOfUserGroups = userGroupsServices.findAllGroupMembersByUser(principal.name)
 
-        return try {
-            println("made it to here xxx")
-            listOfUserGroups = userGroupsServices.findAllGroupMembersByUser(principal.name)
 
+                listOfUserGroups
+            } catch (EmptyResultDataAccessException: Exception) {
+                println("This user has no user groups")
 
-            listOfUserGroups
+                listOfUserGroups
+
+            }
+        } else return try {
+            println("Searching by groupId: $playerGroupIdEnrolled")
+            userGroupsServices.findallByUserAndGroupId(principal.name, playerGroupIdEnrolled)
         } catch (EmptyResultDataAccessException: Exception) {
             println("This user has no user groups")
 
             listOfUserGroups
 
         }
+    }
+/*
+    @GetMapping("/user/myGroups/userGroupsesByGroupId")
+        fun findAllMembersById(@RequestParam id: String, principal: Principal): List<UserGroups>{
+        var listOfUserGroups: List<UserGroups> = arrayListOf()
 
+        println("Fetching userGroups for user: ${principal.name} and id: ${id}")
+        println("Int of String: " + id.toInt())
+        return try {
+            println("made it to here xxx")
+            listOfUserGroups = userGroupsServices.findAllGroupMembersByUserAndGroupId("andrewkealy@hotmail.com", id.toInt())
+
+
+            listOfUserGroups
+        } catch (EmptyResultDataAccessException: Exception) {
+            println("This user has no user groups with that Id")
+
+            listOfUserGroups
 
         }
-
+    }
+*/
     /*
 
      fun groups (@AuthenticationPrincipal user: OidcUser): List<PlayerGroup> {

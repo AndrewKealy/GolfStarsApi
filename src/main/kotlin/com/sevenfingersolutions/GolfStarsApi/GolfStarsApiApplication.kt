@@ -74,6 +74,7 @@ data class PlayerGroup(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  
 @RepositoryRestResource
 interface GroupsRepository : JpaRepository<PlayerGroup, Int> {
 	fun findByPlayerGroupId(playerGroupId: Int?): PlayerGroup
+	fun findAllByGroupOwnerAndGroupNameContainingIgnoringCase(name: String, term : String):List<PlayerGroup>
 }
 
 
@@ -214,19 +215,13 @@ class AddUserGroupForExport(val userGroupsForExportRepository: UserGroupsForExpo
 	}
 }
 */
-/*
-@Entity
-data class UserGroupsForExport (@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var userGroupForExportId: Int? = null , var exportId : Int? = null, var groupName: String?, var golfUserName: String?, var isOwner: Boolean)
-
-@RepositoryRestResource
-interface UserGroupsForExportRepository : JpaRepository<UserGroupsForExport, Int>
 
 /*
 Tournament enrollment is class similar in function to the above class UserGroups.
 It takes a composite primary key from the id of tournament golfers and the id of tournaments.
 It is therefore possible to track into which tournaments golfers are entered and how they perfrom.
  */
-*/
+
 @Entity
 data class TournamentEnrollment  (@EmbeddedId var TournamentEnrollmentId: TournamentEnrollmentId? = null, var oddsToOne : Int? = null, var tournamentPosition : Int? = null, var pickedBy : Int? = null)
 
