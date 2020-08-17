@@ -48,12 +48,18 @@ public class UserGroupsServices {
             if (playerGroupOwner.equals(userName)) {
                 isOwner = true
             }
+  //          println("user groups id: ${userGroups.userGroupsId?.golfUserIdEnrolled}" + " ${userGroups.userGroupsId?.playerGroupIdEnrolled}")
 
-            userGroups.groupName = playerGroupName
-            userGroups.golfUserName = userName
-            userGroups.isOwner = isOwner
-            userGroupsRepository.save(userGroups)
-            userGroupsRepository.flush()
+                userGroups.groupName = playerGroupName
+                userGroups.golfUserName = userName
+                userGroups.isOwner = isOwner
+                userGroupsRepository.save(userGroups)
+                userGroupsRepository.flush()
+
+          }
+
+
+
 
         //    val testUserGroups : UserGroups = userGroupsRepository.findByUserGroupsId(userGroups.userGroupsId)
      //       println("Expecting 6 first : " +  testUserGroups)
@@ -64,7 +70,7 @@ public class UserGroupsServices {
 //            val userGroupsForExport : UserGroupsForExport = UserGroupsForExport(exportId = userGroups.user_groups_exportId ,groupName = playerGroupName, golfUserName = userName, isOwner = isOwner)
   //          userGroupsForExportRepository.save(userGroupsForExport)
 
-        }
+
 /*
         fun updateUserGroupsForExport(userGroupsId: UserGroupsId) {
             val userGroups : UserGroups = userGroupsRepository.findByUserGroupsId(userGroupsId)
@@ -80,12 +86,14 @@ public class UserGroupsServices {
         @Transactional
         fun findAllByUser(name: String): List<UserGroups>? {
 
-            val golfUser: GolfUser = usersRepository.findByUserName(name)
+            val golfUser: GolfUser? = usersRepository.findByUserName(name)
             val userGroups = userGroupsRepository.findAll()
             val usersUserGroups: MutableList<UserGroups> = arrayListOf()
             userGroups.forEach {
-                if (it.userGroupsId?.golfUserIdEnrolled == golfUser.golfUserId) {
-                    usersUserGroups.add(it)
+                if (golfUser != null) {
+                    if (it.userGroupsId?.golfUserIdEnrolled == golfUser.golfUserId) {
+                        usersUserGroups.add(it)
+                    }
                 }
             }
             return usersUserGroups
@@ -95,16 +103,18 @@ public class UserGroupsServices {
     @Transactional
     fun findAllGroupMembersByUser(name: String): List<UserGroups> {
 
-        val golfUser: GolfUser = usersRepository.findByUserName(name)
+        val golfUser: GolfUser? = usersRepository.findByUserName(name)
         val userGroups = userGroupsRepository.findAll()
         val usersUserGroups: MutableList<UserGroups> = arrayListOf()
         userGroups.forEach { userGroups1 ->
-             if ( userGroups1.userGroupsId?.golfUserIdEnrolled == golfUser.golfUserId) {
-                userGroups.forEach {
-                    if (it.userGroupsId?.playerGroupIdEnrolled == userGroups1.userGroupsId?.playerGroupIdEnrolled)
-                        usersUserGroups.add(it)
-                }
+            if (golfUser != null) {
+                if ( userGroups1.userGroupsId?.golfUserIdEnrolled == golfUser.golfUserId) {
+                    userGroups.forEach {
+                        if (it.userGroupsId?.playerGroupIdEnrolled == userGroups1.userGroupsId?.playerGroupIdEnrolled)
+                            usersUserGroups.add(it)
+                    }
 
+                }
             }
         }
         return usersUserGroups
@@ -136,8 +146,8 @@ public class UserGroupsServices {
             var userGroupsById: MutableList<UserGroups> = arrayListOf()
             userGroups.forEach {
                 if (it.userGroupsId?.playerGroupIdEnrolled == playerGroupsId) {
-                    userGroupsById.add(it)
-                }
+                        userGroupsById.add(it)
+                    }
             }
             return userGroupsById
         }

@@ -80,7 +80,8 @@ class UserController(val groupsRepository: GroupsRepository, val usersRepository
             }
         } else return try {
             println("Searching by groupId: $playerGroupIdEnrolled")
-            userGroupsServices.findallByUserAndGroupId(principal.name, playerGroupIdEnrolled)
+     //       userGroupsServices.findallByUserAndGroupId(principal.name, playerGroupIdEnrolled)
+            userGroupsServices.findByPlayerGroupsId(playerGroupIdEnrolled.toInt())!!
         } catch (EmptyResultDataAccessException: Exception) {
             println("This user has no user groups")
 

@@ -4,6 +4,7 @@ package com.sevenfingersolutions.GolfStarsApi
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
+import org.hibernate.exception.ConstraintViolationException
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.boot.web.servlet.FilterRegistrationBean
@@ -14,14 +15,20 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.rest.core.annotation.*
 import org.springframework.data.rest.core.config.RepositoryRestConfiguration
 import org.springframework.data.rest.webmvc.config.RepositoryRestConfigurer
+import org.springframework.http.HttpStatus
+
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
+import org.springframework.transaction.TransactionSystemException
+import org.springframework.validation.annotation.Validated
+import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import org.springframework.web.filter.CorsFilter
 import java.io.Serializable
 import java.util.*
 import javax.persistence.*
+import javax.servlet.http.HttpServletResponse
 
 
 @SpringBootApplication
@@ -33,7 +40,7 @@ class GolfStarsApiApplication {
 		val config = CorsConfiguration()
 		config.allowCredentials = true
 		config.allowedOrigins = listOf("http://localhost:4200")
-		config.allowedMethods = listOf("*");
+		config.allowedMethods = listOf("*")
 		config.allowedHeaders = listOf("*")
 		source.registerCorsConfiguration("/**", config)
 		val bean = FilterRegistrationBean(CorsFilter(source))
@@ -86,10 +93,14 @@ class AddUserToGroup(val groupsRepository: GroupsRepository, val usersRepository
 	fun handleCreate(group: PlayerGroup) {
 		val userName: String =  SecurityContextHolder.getContext().getAuthentication().name
 		println("Created group: $group with user: $userName")
+
+		var user : GolfUser? = usersRepository.findByUserName(userName)
+		if(user==null) {
+			user = GolfUser(userName = userName)
+			usersRepository.save(user)
+		}
 		group.groupOwner = userName
 		groupsRepository.save(group)
-
-		val user : GolfUser = usersRepository.findByUserName(userName);
 		val userId : Int? = user.golfUserId
 		val groupId : Int? = group.playerGroupId
 		println("userID: $userId")
@@ -135,31 +146,20 @@ class DeleteGroup( val chatMessageRepository: ChatMessageRepository, val userGro
 
 /*
 GolfUser is the data class a unique player id and username. It is used to link them to their groups and to messages.
-It is not needed for sign in, OAuth2 authenication is handled by the okta plugin. The username for okta and for this
+It is not needed for sign in, OAuth2 authentication is handled by the okta plugin. The username for okta and for this
 class ought to be the same
  */
 
 @Entity
 data class GolfUser(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var golfUserId: Int? = null ,
-					var userName: String? = null, @JsonIgnore var userOktaId: String? = null)
+					var userName: String? = null, var firstName: String? = null, var familyName: String? = null)
 
 @RepositoryRestResource
 interface UsersRepository : JpaRepository<GolfUser, Int> {
-	fun findByUserName(userName: String?): GolfUser
+	fun findByUserName(userName: String?): GolfUser?
 	fun findByGolfUserId(id : Int?) : GolfUser
 }
 
-@Component
-@RepositoryEventHandler(GolfUser::class)
-class AddOktaUserNameToGolfUser {
-
-	@HandleBeforeCreate
-	fun handleCreate(golfUser: GolfUser) {
-		val oktaUsername: String =  SecurityContextHolder.getContext().getAuthentication().name
-		println("Creating record: $golfUser with user: $oktaUsername")
-		golfUser.userOktaId = oktaUsername
-	}
-}
 /**
  * UserGroups is a table in the database that contains userIDs and groupIds, allowing a query that will return all the
  * members of a group. It will also allow logic be applied to enforce the numbers in a group.
@@ -175,8 +175,7 @@ data class UserGroups  (@Id @GeneratedValue(strategy = GenerationType.IDENTITY) 
 	override fun toString(): String {
 		val mapper = ObjectMapper()
 		mapper.enable(SerializationFeature.INDENT_OUTPUT)
-		val jsonString = mapper.writeValueAsString(this)
-		return jsonString
+		return mapper.writeValueAsString(this)
 	}
 }
 
@@ -203,7 +202,37 @@ class UserGroupsId (
 }
 
 @RepositoryRestResource
-interface UserGroupsRepository : JpaRepository<UserGroups, Int>
+interface UserGroupsRepository : JpaRepository<UserGroups, Int>{
+	fun findUserGroupsByUserGroupsId(userGroupsId: UserGroupsId?): UserGroups?
+}
+
+
+@Component
+@RepositoryEventHandler(UserGroups::class)
+class AddDetailsToUserGroups(val groupsRepository: GroupsRepository, val usersRepository: UsersRepository) {
+
+	@HandleBeforeCreate
+	fun handleCreate( userGroups: UserGroups) {
+		println("handle before create: $userGroups")
+		userGroups.isOwner = false
+		var golfUser: GolfUser? = usersRepository.findByUserName(userGroups.golfUserName)
+			if(golfUser==null) {
+				golfUser = GolfUser(userName = userGroups.golfUserName)
+				usersRepository.save(golfUser)
+			}
+		userGroups.userGroupsId?.golfUserIdEnrolled  = golfUser.golfUserId!!
+		val playerGroupId = userGroups.userGroupsId?.playerGroupIdEnrolled
+
+		val playerGroup: PlayerGroup? = playerGroupId?.let { groupsRepository.findByPlayerGroupId(it) }
+		if (playerGroup != null) {
+			userGroups.groupName = playerGroup.groupName
+		}
+
+		println("Creating record: $userGroups")
+
+	}
+}
+
 /*
 @Component
 @RepositoryEventHandler(UserGroups::class)
@@ -219,7 +248,7 @@ class AddUserGroupForExport(val userGroupsForExportRepository: UserGroupsForExpo
 /*
 Tournament enrollment is class similar in function to the above class UserGroups.
 It takes a composite primary key from the id of tournament golfers and the id of tournaments.
-It is therefore possible to track into which tournaments golfers are entered and how they perfrom.
+It is therefore possible to track into which tournaments golfers are entered and how they perform.
  */
 
 @Entity
@@ -295,5 +324,6 @@ data class TournamentGolfer(@Id @GeneratedValue(strategy = GenerationType.IDENTI
 
 @RepositoryRestResource
 interface TournamentGolferRepository : JpaRepository<TournamentGolfer, Int>
+
 
 
