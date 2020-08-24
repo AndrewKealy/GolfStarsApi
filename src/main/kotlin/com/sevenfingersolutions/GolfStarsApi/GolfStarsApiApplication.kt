@@ -156,7 +156,6 @@ update the related UserGroup after the PlayerGroup is saved.
 		}
 
 	}
-
 }
 /*
 If the PlayerGroup is deleted, the following function automatically
@@ -164,14 +163,15 @@ deletes the related UserGroups.
  */
 @Component
 @RepositoryEventHandler(PlayerGroup::class)
-class DeleteGroup( val chatMessageRepository: ChatMessageRepository, val userGroupsServices: UserGroupsServices) {
+class DeleteGroup( val chatMessageRepository: ChatMessageRepository, val userGroupsServices: UserGroupsServices, val tournamentGroupServices: TournamentGroupServices) {
 
 	@HandleBeforeDelete
 	fun handleDelete(group: PlayerGroup) {
 		val groupId = group.playerGroupId
 		val userGroupsToDelete : List<UserGroups> = groupId?.let { userGroupsServices.findByPlayerGroupsId(it) }!!
 		userGroupsServices.deleteListOfUserGroups(userGroupsToDelete)
-
+		val tournamentGroupsToDelete: List<TournamentGroup> = groupId.let { tournamentGroupServices.findAllByPlayerGroupId(it)}
+		tournamentGroupServices.deleteListOfTournamentGroups(tournamentGroupsToDelete);
 		val chatMessagesToDelete : List<ChatMessage> = groupId.let { chatMessageRepository.findAllByGroupId(it)}
 		chatMessageRepository.deleteInBatch(chatMessagesToDelete)
 	}

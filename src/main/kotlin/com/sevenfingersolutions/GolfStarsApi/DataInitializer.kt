@@ -18,7 +18,7 @@ class DataInitializer(val groupsRepository: GroupsRepository, val usersRepositor
 This class creates user, group and tournament data to populate the database on first start up.
  */
     override fun run(args: ApplicationArguments) {
-
+/*
         val currentTournamentId: Int = 1
 
         val johnSmith = GolfUser(userName = "johnsmith@fakeemail.com", firstName = "John", familyName = "Smith")
@@ -261,6 +261,7 @@ Tournament groups are created, linking the groups of golfers with groups of game
         }
 
         saveTournamentGroup()
+  */
     }
 
 }

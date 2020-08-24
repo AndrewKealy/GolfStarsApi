@@ -44,4 +44,10 @@ public class TournamentGroupServices {
         }
         return tournamentGroups
     }
+
+    fun deleteListOfTournamentGroups(tournamentGroups: List<TournamentGroup>) {
+        tournamentGroups.forEach {
+            tournamentGroupRepository.delete(it)
+        }
+    }
 }
