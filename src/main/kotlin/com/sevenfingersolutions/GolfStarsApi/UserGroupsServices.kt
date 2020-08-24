@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service
 
 
 /**
- * This service is designed to connect allow composite primary keys be assigned to the linked MySql database
+ * This service is designed to connect allow  primary keys be assigned to the linked MySql database
  *
  */
 @Service
@@ -22,8 +22,6 @@ public class UserGroupsServices {
     @Autowired
     lateinit var groupsRepository: GroupsRepository
 
-  //  @Autowired
-//    lateinit var userGroupsForExportRepository: UserGroupsForExportRepository
 
     fun deleteAll() {
         userGroupsRepository.deleteAll()
@@ -48,7 +46,6 @@ public class UserGroupsServices {
             if (playerGroupOwner.equals(userName)) {
                 isOwner = true
             }
-  //          println("user groups id: ${userGroups.userGroupsId?.golfUserIdEnrolled}" + " ${userGroups.userGroupsId?.playerGroupIdEnrolled}")
 
                 userGroups.groupName = playerGroupName
                 userGroups.golfUserName = userName
@@ -57,30 +54,6 @@ public class UserGroupsServices {
                 userGroupsRepository.flush()
 
           }
-
-
-
-
-        //    val testUserGroups : UserGroups = userGroupsRepository.findByUserGroupsId(userGroups.userGroupsId)
-     //       println("Expecting 6 first : " +  testUserGroups)
-       //     userGroups.userGroupsId?.let { updateUserGroupsForExport(it) }
-
-
-
-//            val userGroupsForExport : UserGroupsForExport = UserGroupsForExport(exportId = userGroups.user_groups_exportId ,groupName = playerGroupName, golfUserName = userName, isOwner = isOwner)
-  //          userGroupsForExportRepository.save(userGroupsForExport)
-
-
-/*
-        fun updateUserGroupsForExport(userGroupsId: UserGroupsId) {
-            val userGroups : UserGroups = userGroupsRepository.findByUserGroupsId(userGroupsId)
-            println("Expecting 6 : " +  userGroups)
-            val userGroupsForExport: UserGroupsForExport = UserGroupsForExport(exportId = userGroups.userGroupsExportId, groupName = userGroups.groupName, golfUserName = userGroups.golfUserName, isOwner = userGroups.isOwner)
-                userGroupsForExportRepository.save(userGroupsForExport)
-
-        }
-*/
-
 
 
         @Transactional

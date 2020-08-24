@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
 /**
- * This service is designed to connect allow composite primary keys be assigned to the linked MySql database
+ * This service is designed to connect allow composite  keys be assigned to the linked MySql database
  *
  */
 
@@ -29,7 +29,19 @@ public class TournamentGroupServices {
     @Transactional
     fun getAll(): MutableList<TournamentGroup> {
         val tournamentGroup = tournamentGroupRepository.findAll()
-        tournamentGroup.forEach{println(it)}
+    //    tournamentGroup.forEach{println(it)}
         return tournamentGroup
+    }
+
+    @Transactional
+    fun findAllByPlayerGroupId(playerGroupIdEnrolled: Int?): List<TournamentGroup>{
+        val tournamentGroups = tournamentGroupRepository.findAll()
+        val tournamentGroupsById: MutableList<TournamentGroup> = arrayListOf()
+        tournamentGroups.forEach {
+            if (it.tournamentGroupId?.playerGroupForeignId == playerGroupIdEnrolled) {
+                tournamentGroupsById.add(it)
+            }
+        }
+        return tournamentGroups
     }
 }

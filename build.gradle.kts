@@ -24,6 +24,8 @@ dependencies {
 	implementation("com.okta.spring:okta-spring-boot-starter:1.4.0")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+	implementation("junit:junit:4.12")
+	implementation("junit:junit:4.12")
 	runtimeOnly("mysql:mysql-connector-java")
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
 		exclude(group = "org.junit.vintage", module = "junit-vintage-engine")

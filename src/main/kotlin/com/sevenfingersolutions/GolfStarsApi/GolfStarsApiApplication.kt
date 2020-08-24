@@ -4,7 +4,6 @@ package com.sevenfingersolutions.GolfStarsApi
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
-import org.hibernate.exception.ConstraintViolationException
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.boot.web.servlet.FilterRegistrationBean
@@ -15,24 +14,29 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.rest.core.annotation.*
 import org.springframework.data.rest.core.config.RepositoryRestConfiguration
 import org.springframework.data.rest.webmvc.config.RepositoryRestConfigurer
-import org.springframework.http.HttpStatus
+
 
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
-import org.springframework.transaction.TransactionSystemException
-import org.springframework.validation.annotation.Validated
-import org.springframework.web.bind.annotation.ExceptionHandler
+
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import org.springframework.web.filter.CorsFilter
 import java.io.Serializable
 import java.util.*
 import javax.persistence.*
-import javax.servlet.http.HttpServletResponse
+
 
 
 @SpringBootApplication
 class GolfStarsApiApplication {
+
+
+/*
+This function allow both the api and the client to be run from the same machine
+without causing an issue.
+ */
+
 
 	@Bean
 	fun simpleCorsFilter(): FilterRegistrationBean<CorsFilter> {
@@ -49,6 +53,13 @@ class GolfStarsApiApplication {
 	}
 }
 
+/*
+The following function allows IDs to be exposed to the client.
+This was necessary to solve a problem where, when editing an entity on the client side,
+if it couldn't see the ID, it would try to save a new instance of the data class, rather than
+updating the existing one.
+ */
+
 @Configuration
 class RestConfiguration : RepositoryRestConfigurer {
 	override fun configureRepositoryRestConfiguration(config: RepositoryRestConfiguration?) {
@@ -58,6 +69,7 @@ class RestConfiguration : RepositoryRestConfigurer {
 		config?.exposeIdsFor(TournamentEnrollment::class.java)
 		config?.exposeIdsFor(Tournament::class.java)
 		config?.exposeIdsFor(TournamentGolfer::class.java)
+		config?.exposeIdsFor(TournamentGroup::class.java)
 		config?.setBasePath("/api")
 	}
 }
@@ -85,15 +97,25 @@ interface GroupsRepository : JpaRepository<PlayerGroup, Int> {
 }
 
 
+/*
+The creation of a new Group by a user necessitates the creation of both a new UserGroups, to link the user to the group,
+and a new tournamentGroup, to link this new group to a list of Tournament Golfers and player selections.
+After a new group is created, the person creating is automatically linked as a member of that group.
+ */
 
 @Component
 @RepositoryEventHandler(PlayerGroup::class)
-class AddUserToGroup(val groupsRepository: GroupsRepository, val usersRepository: UsersRepository, val userGroupsServices: UserGroupsServices) {
+class AddUserToGroup(val groupsRepository: GroupsRepository, val usersRepository: UsersRepository,
+					 val userGroupsServices: UserGroupsServices, val tournamentRepository: TournamentRepository,
+						val tournamentEnrollmentRepository: TournamentEnrollmentRepository, val tournamentGroupRepository: TournamentGroupRepository) {
 	@HandleAfterCreate
 	fun handleCreate(group: PlayerGroup) {
+		val CURRENT_TOURNAMENT =1
+
 		val userName: String =  SecurityContextHolder.getContext().getAuthentication().name
 		println("Created group: $group with user: $userName")
 
+		// The following code creates a UserGroups entity each time a new PlayerGroup is created
 		var user : GolfUser? = usersRepository.findByUserName(userName)
 		if(user==null) {
 			user = GolfUser(userName = userName)
@@ -103,22 +125,30 @@ class AddUserToGroup(val groupsRepository: GroupsRepository, val usersRepository
 		groupsRepository.save(group)
 		val userId : Int? = user.golfUserId
 		val groupId : Int? = group.playerGroupId
-		println("userID: $userId")
-		println("groupId: $groupId")
 		val userGroupId = userId?.let { groupId?.let { it1 -> UserGroupsId(it, it1) } }
-		println("userGroupID: $userGroupId")
 		val userGroup = UserGroups(userGroupsId = userGroupId)
 		userGroupsServices.save(userGroup)
 
+		// The following code creates a TournamentGroups entity each time a new PlayerGroup is created
+
+		val tournamentEnrollments: List<TournamentEnrollment> = tournamentEnrollmentRepository.findAllByTournamentIdSearch(CURRENT_TOURNAMENT)
+		tournamentEnrollments.forEach {
+			val tournamentGroupId = group.playerGroupId?.let { it1 -> it.tournamentEnrollmentPrimaryKey?.let { it2 -> TournamentGroupId(it2, it1) } }
+			val tournamentGroup = TournamentGroup(tournamentGroupId = tournamentGroupId, playerGroupFilter = group.playerGroupId, golferId = it.golferId, golferFirstName = it.golferFirstName,
+					golferSecondName = it.golferSecondName, golferImageUrl = it.golferImageUrl, golferNationality = it.golferNationality, oddsToOne = it.oddsToOne, tournamentPosition = it.tournamentPosition,
+					finalScore = it.finalScore)
+			tournamentGroupRepository.save(tournamentGroup)
+		}
 
 	}
-
+/*
+If the PlayerGroup is edited, the following function automatically
+update the related UserGroup after the PlayerGroup is saved.
+ */
 	@HandleAfterSave
 	fun handleSave(group: PlayerGroup){
 		val playerGroupId: Int? = group.playerGroupId
 		val playerGroupOwner : String? = group.groupOwner
-		println("Updating UserGroups after saving change to a PlayerGroup")
-
 		playerGroupId?.let { userGroupsServices.findByPlayerGroupsId(it) }?.forEach {
 			it.groupName = group.groupName
 			it.isOwner = it.golfUserName.equals(playerGroupOwner)
@@ -128,7 +158,10 @@ class AddUserToGroup(val groupsRepository: GroupsRepository, val usersRepository
 	}
 
 }
-
+/*
+If the PlayerGroup is deleted, the following function automatically
+deletes the related UserGroups.
+ */
 @Component
 @RepositoryEventHandler(PlayerGroup::class)
 class DeleteGroup( val chatMessageRepository: ChatMessageRepository, val userGroupsServices: UserGroupsServices) {
@@ -145,9 +178,9 @@ class DeleteGroup( val chatMessageRepository: ChatMessageRepository, val userGro
 }
 
 /*
-GolfUser is the data class a unique player id and username. It is used to link them to their groups and to messages.
+GolfUser is the data class a unique player id and username. It is used to link them to their groups.
 It is not needed for sign in, OAuth2 authentication is handled by the okta plugin. The username for okta and for this
-class ought to be the same
+are the same
  */
 
 @Entity
@@ -163,15 +196,16 @@ interface UsersRepository : JpaRepository<GolfUser, Int> {
 /**
  * UserGroups is a table in the database that contains userIDs and groupIds, allowing a query that will return all the
  * members of a group. It will also allow logic be applied to enforce the numbers in a group.
- * The MySql table uses a composite primary key comprised of the two foreign keys. To facilitate this relationship
+ * The MySql table uses a unique composite  key comprised of the two foreign keys. To facilitate this relationship
  * it was necessary to create two classes, the UserGroups class and the separate UserGroupsId class that
- * provides the composite ID. This took many hours to figure out!!!
+ * provides the composite ID.
  */
 
 
-
 @Entity
-data class UserGroups  (@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var userGroupsPrimaryKey : Int? = null,  @Embedded   var userGroupsId: UserGroupsId? = null, var groupName : String? = null, var golfUserName : String? = null, var isOwner : Boolean = false) {
+data class UserGroups  (@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var userGroupsPrimaryKey : Int? = null,
+						@Embedded   var userGroupsId: UserGroupsId? = null, var groupName : String? = null,
+						var golfUserName : String? = null, var isOwner : Boolean = false) {
 	override fun toString(): String {
 		val mapper = ObjectMapper()
 		mapper.enable(SerializationFeature.INDENT_OUTPUT)
@@ -179,7 +213,7 @@ data class UserGroups  (@Id @GeneratedValue(strategy = GenerationType.IDENTITY) 
 	}
 }
 
-	@Embeddable
+@Embeddable
 class UserGroupsId (
 		@Column(name = "golf_user_id_enrolled")
 		var golfUserIdEnrolled: Int = -1,
@@ -204,6 +238,7 @@ class UserGroupsId (
 @RepositoryRestResource
 interface UserGroupsRepository : JpaRepository<UserGroups, Int>{
 	fun findUserGroupsByUserGroupsId(userGroupsId: UserGroupsId?): UserGroups?
+	fun findUserGroupsByGolfUserName(userName: String?):List<UserGroups?>
 }
 
 
@@ -233,17 +268,6 @@ class AddDetailsToUserGroups(val groupsRepository: GroupsRepository, val usersRe
 	}
 }
 
-/*
-@Component
-@RepositoryEventHandler(UserGroups::class)
-class AddUserGroupForExport(val userGroupsForExportRepository: UserGroupsForExportRepository) {
-	@HandleAfterCreate
-	fun handleCreate(userGroups: UserGroups) {
-		val userGroupsForExport: UserGroupsForExport = UserGroupsForExport(exportId = userGroups.userGroupsExportId, groupName = userGroups.groupName, golfUserName = userGroups.golfUserName, isOwner = userGroups.isOwner)
-		userGroupsForExportRepository.save(userGroupsForExport)
-	}
-}
-*/
 
 /*
 Tournament enrollment is class similar in function to the above class UserGroups.
@@ -252,7 +276,15 @@ It is therefore possible to track into which tournaments golfers are entered and
  */
 
 @Entity
-data class TournamentEnrollment  (@EmbeddedId var TournamentEnrollmentId: TournamentEnrollmentId? = null, var oddsToOne : Int? = null, var tournamentPosition : Int? = null, var pickedBy : Int? = null)
+data class TournamentEnrollment  (@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var tournamentEnrollmentPrimaryKey : Int? = null,
+								   @Embedded var tournamentEnrollmentId: TournamentEnrollmentId? = null,
+								  var tournamentIdSearch: Int? = null,
+								  var golferId :Int? = null, var golferFirstName: String? = null,
+								  var golferSecondName: String? = null,
+								  var golferImageUrl: String? = null,
+								  var golferNationality: String? = null,
+								  var oddsToOne : Double? = null,
+								  var tournamentPosition : Int? = null, var finalScore : Int? = null)
 
 @Embeddable
 class TournamentEnrollmentId (
@@ -262,34 +294,111 @@ class TournamentEnrollmentId (
 		@Column(name = "tournament_id_enrolled")
 		var tournamentIdEnrolled: Int = -1
 
-):Serializable
+):Serializable {
+	override fun equals(other: Any?): Boolean {
+		if (this === other) return true
+		if (other == null || javaClass != other.javaClass) return false
+		val that: TournamentEnrollmentId = other as TournamentEnrollmentId
+		return Objects.equals(tournamentGolferIdEnrolled, that.tournamentGolferIdEnrolled) &&
+				Objects.equals(tournamentIdEnrolled, that.tournamentIdEnrolled)
+	}
+
+	override fun hashCode(): Int {
+		return Objects.hash(tournamentGolferIdEnrolled, tournamentIdEnrolled)
+	}
+}
 
 @RepositoryRestResource
-interface TournamentEnrollmentRepository : JpaRepository<TournamentEnrollment, TournamentEnrollmentId>
+interface TournamentEnrollmentRepository : JpaRepository<TournamentEnrollment, Int>{
+	fun findAllByTournamentIdSearch(tournamentIdSearch: Int?): List<TournamentEnrollment>
+}
+
+/*
+The TournamentGroup data class links all the players enrolled in a tournament to a PlayerGroup.
+This allows the same golfers to be represented separately in multiple PlayerGroups
+ */
 
 
 @Entity
-data class TournamentGroup  (@EmbeddedId var TournamentGroupId: TournamentGroupId? = null)
+data class TournamentGroup  (@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var tournamentGroupPrimaryKey : Int? = null,
+							 @Embedded var tournamentGroupId: TournamentGroupId? = null,
+							 var playerGroupFilter: Int? = null,
+							 var golferId :Int? = null, var golferFirstName: String? = null,
+							 var golferSecondName: String? = null,
+							 var golferImageUrl: String? = null,
+							 var golferNationality: String? = null,
+							 var oddsToOne : Double? = null,
+							 var tournamentPosition : Int? = null, var finalScore : Int? = null,
+							 var pickedById : Int? = null, var pickedByUsername : String? = null,
+							 var isPicked: Boolean = false)
 
 @Embeddable
 class TournamentGroupId (
-		@Column(name = "tournament_linked_id")
-		var tournamentLinkedId: Int = -1,
+		@Column(name = "tournament_enrollment_foreign_id")
+		var tournamentEnrollmentForeignId: Int = -1,
 
-		@Column(name = "group_linked_id")
-		var groupLinkedId: Int = -1
+		@Column(name = "player_group_foreign_id")
+		var playerGroupForeignId: Int = -1
 
-):Serializable
+):Serializable {
+	override fun equals(other: Any?): Boolean {
+		if (this === other) return true
+		if (other == null || javaClass != other.javaClass) return false
+		val that: TournamentGroupId = other as TournamentGroupId
+		return Objects.equals(tournamentEnrollmentForeignId, that.tournamentEnrollmentForeignId) &&
+				Objects.equals(playerGroupForeignId, that.playerGroupForeignId)
+	}
+
+	override fun hashCode(): Int {
+		return Objects.hash(tournamentEnrollmentForeignId, playerGroupForeignId)
+	}
+}
 
 @RepositoryRestResource
-interface TournamentGroupRepository : JpaRepository<TournamentGroup, TournamentGroupId>
+interface TournamentGroupRepository : JpaRepository<TournamentGroup, Int> {
+	fun findAllByPlayerGroupFilter(playerGroupId: Int?): List<TournamentGroup>
+}
+
+@Component
+@RepositoryEventHandler(TournamentGroup::class)
+class SaveGroup() {
+	@HandleBeforeSave
+	fun handleSave(tournamentGroup: TournamentGroup) {
+
+		println("Saving this tournament group: $tournamentGroup")
+		if(tournamentGroup.isPicked == true ) {
+			val userName: String =  SecurityContextHolder.getContext().getAuthentication().name
+			tournamentGroup.pickedByUsername = userName;
+		} else {
+			tournamentGroup.pickedByUsername = null
+		}
+	}
+}
+
+
+@Entity
+data class Tournament(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var tournamentId: Int? = null ,
+							var tournamentName: String? = null, var tournamentLocation: String? = null, var tournamentStartDate : String? = null, var tournamentEndDate : String? = null)
+
+@RepositoryRestResource
+interface TournamentRepository : JpaRepository<Tournament, Int>
+
+
+@Entity
+data class TournamentGolfer(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var tournamentGolferId: Int? = null ,
+					var firstName: String? = null, var secondName: String? = null, var imageUrl: String? = null, var nationality : String? = null)
+
+@RepositoryRestResource
+interface TournamentGolferRepository : JpaRepository<TournamentGolfer, Int>
 
 /*
-A class to store message data shared between users.
-*/
+The chat message entity was created below to allow the implementation of a chat function at a later date
+ */
+
+
 @Entity
 data class ChatMessage(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var messageId: Int? = null ,
-					var playerUserName: String? = null, var groupId : Int? = null, var messageBody: String? = null,
+					   var playerUserName: String? = null, var groupId : Int? = null, var messageBody: String? = null,
 					   @JsonIgnore  var messageDate : Long? =  System.currentTimeMillis())
 
 
@@ -309,21 +418,3 @@ class AddTimeToMessage {
 interface ChatMessageRepository : JpaRepository<ChatMessage, Int>{
 	fun findAllByGroupId(groupId: Int) : List<ChatMessage>
 }
-
-@Entity
-data class Tournament(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var tournamentId: Int? = null ,
-							var tournamentName: String? = null, var tournamentLocation: String? = null, var tournamentStartDate : String? = null, var tournamentEndDate : String? = null)
-
-@RepositoryRestResource
-interface TournamentRepository : JpaRepository<Tournament, Int>
-
-
-@Entity
-data class TournamentGolfer(@Id @GeneratedValue(strategy = GenerationType.IDENTITY)  var tournamentGolferId: Int? = null ,
-					var firstName: String? = null, var secondName: String? = null, var imageUrl: String? = null, var nationality : String? = null)
-
-@RepositoryRestResource
-interface TournamentGolferRepository : JpaRepository<TournamentGolfer, Int>
-
-
-
