@@ -261,7 +261,7 @@ Tournament groups are created, linking the groups of golfers with groups of game
         }
 
         saveTournamentGroup()
-  */
+*/
     }
 
 }
